@@ -6,7 +6,7 @@
 //#include "WiFiNINA.h"
 #include <WiFiNINA.h>
 //#include <Arduino_LSM6DS3.h>
-#include "lib/Arduino_LSM6DS3.h"
+#include "Arduino_LSM6DS3.h"
 
 const char *ssid     = "H1S2";
 const char *password = "pw1234pw1234";
@@ -29,7 +29,7 @@ movementType data[20];//[9];
 static const int RXPin = 5, TXPin = 6;
 TinyGPSPlus gps;
 
-Uart gpsSerial (&sercom0, 5, 6, SERCOM_RX_PAD_1, UART_TX_PAD_0);
+Uart gpsSerial (&sercom0, RXPin, TXPin, SERCOM_RX_PAD_1, UART_TX_PAD_0);
 
 void SERCOM0_Handler() {
   gpsSerial.IrqHandler();
@@ -56,8 +56,6 @@ void gpsInit() {
     gpsSerial.write( pgm_read_byte(UBLOX_INIT + i) );
   }
 
-
-  gpsSerial.print("$PUBX,41,1,0003,0001,115200,0*1E\r\n");
   delay(100);
   gpsSerial.end();
   delay(100);
@@ -87,14 +85,12 @@ int imuPoll() {
 
 
 void gpsPoll() {
-  //Serial.println("0 returned");
   data[arrayPtr].lat = gps.location.lat();
   data[arrayPtr].lng = gps.location.lng();
   data[arrayPtr].hour = gps.time.hour();
   data[arrayPtr].min = gps.time.minute();
   data[arrayPtr].sec = gps.time.second();
   data[arrayPtr].csec = gps.time.centisecond();
-
 }
 
 
@@ -106,15 +102,11 @@ void setup() {
   Serial.begin(9600);
   gpsSerial.begin(9600);
   while (!gpsSerial);
-  //while(!Serial);
-  while (!IMU.begin()) {
+
+  while (!IMU.begin()) 
     Serial.println("IMU init failed");
-  }
+  
   gpsInit();
-
-
-  Serial.println("GPS NOW");
-  int gpsWait = 1;
 
   Serial.println(WiFi.SSID());
 
@@ -166,33 +158,16 @@ void loop() {
     //Serial.print(dataReady);
     if (c == 'A') {
       Serial.println("ACK received, server connected");
-      /*else if (c == 'C') {
-        //Serial.println("Tick received");
-        imuPoll(); //Accel DATA
-        Serial.print(",");
-        gpsPoll();
-        Serial.print(".");
-
-        arrayPtr++;
-        client.flush();*/
+      
 
     } else if (c == 'G') {
-      //Serial.print("G Delay ms: ");
-      //Serial.println(millis() - inG);
-      //inG = millis();
-      //combine();
       char *bytes = (char *) data;
       client.write(bytes, sizeof(data));
       client.flush();
       //char *cbytes = (char *) combData;
       Serial.print("Data");
       Serial.println(sizeof(data));
-      //Serial.print("GDATA");
       dataReady = 0;
-      //Serial.println(sizeof(gdata));
-      //client.write(cbytes, sizeof(combData));
-      //char *gbytes = (char *) gdata;
-      //client.write(gbytes, sizeof(gdata));
       arrayPtr = 0;
     }
   } else if (!dataReady) {
@@ -202,9 +177,7 @@ void loop() {
       imuPoll();
       gpsPoll();
       arrayPtr++;
-      //delay(100);
-      delay(31);
-      //delay(27);
+      delay(31); //31ms 
     }
     Serial.print("Data ready in ms: ");
     Serial.println(millis() - start);
