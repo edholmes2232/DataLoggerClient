@@ -85,11 +85,11 @@ int imuPoll() {
 
 
 void gpsPoll() {
-  data[arrayPtr].lat = gps.location.lat();
-  data[arrayPtr].lng = gps.location.lng();
+  data[arrayPtr].lat  = gps.location.lat();
+  data[arrayPtr].lng  = gps.location.lng();
   data[arrayPtr].hour = gps.time.hour();
-  data[arrayPtr].min = gps.time.minute();
-  data[arrayPtr].sec = gps.time.second();
+  data[arrayPtr].min  = gps.time.minute();
+  data[arrayPtr].sec  = gps.time.second();
   data[arrayPtr].csec = gps.time.centisecond();
 }
 
@@ -98,6 +98,9 @@ void gpsPoll() {
 void setup() {
   pinPeripheral(RXPin, PIO_SERCOM_ALT); //alt?
   pinPeripheral(TXPin, PIO_SERCOM_ALT);
+  pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, LOW);
+  
 
   Serial.begin(9600);
   gpsSerial.begin(9600);
@@ -107,9 +110,21 @@ void setup() {
     Serial.println("IMU init failed");
   
   gpsInit();
-
+  wifiConnect();
   Serial.println(WiFi.SSID());
 
+  
+  Serial.print("Attempting to connect to SSID: ");
+  Serial.println(ssid);
+
+  delay(5000);
+
+  Serial.println("Connected to wifi");
+  serverConnect();
+}
+
+void wifiConnect() {
+  digitalWrite(LED_BUILTIN, LOW);
   while ( status != WL_CONNECTED ) {
     Serial.print("Attempt to connect to WPA SSID: ");
     Serial.println(ssid);
@@ -120,29 +135,34 @@ void setup() {
     delay ( 10000 );
     Serial.print ( "." );
   }
-
-  Serial.print("Attempting to connect to SSID: ");
-  Serial.println(ssid);
-
-  delay(5000);
-
-  Serial.println("Connected to wifi");
-  serverConnect();
+  digitalWrite(LED_BUILTIN, HIGH);
 }
 
 void serverConnect() {
+  digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
   if (client.connect(server, 8080)) {
     Serial.println("connected");
+    digitalWrite(LED_BUILTIN, HIGH);
   } else {
     // if you didn't get a connection to the server:
     Serial.println("connection failed");
   }
 }
-
+int disconnects = 0;
+int servConnection = 0;
 int dataReady = 0;
 int inG = 0;
 void loop() {
   while (!client.connected()) {
+    if (servConnection) 
+      disconnects++;
+    if (disconnects > 3) {
+      
+      printf("4 disconnects detected; restarting wifi connection...");
+      disconnects = 0;
+      status = WiFi.begin(ssid, password);
+      wifiConnect();
+    }
     Serial.println();
     Serial.println("disconnecting.");
     client.stop();
@@ -151,6 +171,7 @@ void loop() {
   }
 
   if (client.available()) {
+    servConnection = 1;
     //char *c = (char *)client.read();
     char c = client.read();
     client.flush();
