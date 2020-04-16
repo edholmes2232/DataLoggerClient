@@ -7,14 +7,22 @@
 #include <WiFiNINA.h>
 //#include <Arduino_LSM6DS3.h>
 #include "Arduino_LSM6DS3.h"
+
+#include "Wifi/Wifi_Settings.h";
 int timeVector = 0;
 int imuSampleRate; 
 
-const char *ssid     = "H1S2";
-const char *password = "pw1234pw1234";
+//const char *ssid     = "H1S2";
+//const char *password = "pw1234pw1234";
+char ssid[]     = SECRET_SSID;        // your network SSID (name)
+char password[] = SECRET_PASS; 
+
+IPAddress server(IPAddr[0],IPAddr[1],IPAddr[2],IPAddr[3]);  // numeric IP for Google (no DNS)
+
+
 
 int status = WL_IDLE_STATUS;
-IPAddress server(192, 168, 43, 30); // Google laptop
+//IPAddress server(192, 168, 43, 30); // Google laptop
 
 // Initialize the client library
 WiFiClient client;
@@ -116,7 +124,7 @@ void setup() {
   
   Serial.print("Waiting for GPS Fix");
 
-  while  (!(gps.location.isValid() && gps.location.age() < 2000)) //{
+  //while  (!(gps.location.isValid() && gps.location.age() < 2000)) {
     //Serial.println(".");
     //Serial.println(gps.location.age());
     //Serial.println(gps.location.isValid());
