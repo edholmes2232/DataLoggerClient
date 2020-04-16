@@ -7,6 +7,8 @@
 #include <WiFiNINA.h>
 //#include <Arduino_LSM6DS3.h>
 #include "Arduino_LSM6DS3.h"
+int timeVector = 0;
+int imuSampleRate; 
 
 const char *ssid     = "H1S2";
 const char *password = "pw1234pw1234";
@@ -20,7 +22,7 @@ float x, y, z;
 int arrayPtr = 0;
 
 typedef struct {
-  float ax, ay, az, gx, gy, gz;
+  float ax, ay, az, gx, gy, gz, tv; //possibly double?
   double lat, lng;
   int hour, min, sec, csec;
 } movementType;
@@ -81,6 +83,8 @@ int imuPoll() {
     data[arrayPtr].gy = y;
     data[arrayPtr].gz = z;
   }
+  data[arrayPtr].tv = float(timeVector)/float(imuSampleRate);
+  timeVector++;
 }
 
 
@@ -107,14 +111,19 @@ void setup() {
 
   while (!IMU.begin()) 
     Serial.println("IMU init failed");
+    
+  imuSampleRate = IMU.accelerationSampleRate();
+  
+  Serial.print("Waiting for GPS Fix");
 
-  while  (!(gps.location.isValid() && gps.location.age() < 2000)) {
-    Serial.println("No GPS Fix...\t\t");
-    Serial.println(gps.location.age());
-    Serial.println(gps.location.isValid());
-    Serial.println(gps.location.lat());
+  while  (!(gps.location.isValid() && gps.location.age() < 2000)) //{
+    //Serial.println(".");
+    //Serial.println(gps.location.age());
+    //Serial.println(gps.location.isValid());
+    //Serial.println(gps.location.lat());
     //gpsInit();
-  }
+  //}
+  Serial.println("GPS Fix aquired, changing freq");
   gpsInit();
   wifiConnect();
   Serial.println(WiFi.SSID());
@@ -158,6 +167,7 @@ int disconnects = 0;
 int servConnection = 0;
 int dataReady = 0;
 int inG = 0;
+
 void loop() {
   while (!client.connected()) {
     if (servConnection) 
@@ -188,11 +198,12 @@ void loop() {
       
 
     } else if (c == 'G') {
+      
       char *bytes = (char *) data;
       client.write(bytes, sizeof(data));
       client.flush();
       //char *cbytes = (char *) combData;
-      Serial.print("Data");
+      Serial.print("Data:");
       Serial.println(sizeof(data));
       dataReady = 0;
       arrayPtr = 0;
@@ -209,5 +220,5 @@ void loop() {
     Serial.print("Data ready in ms: ");
     Serial.println(millis() - start);
     dataReady = 1;
-  }
+  } 
 }
