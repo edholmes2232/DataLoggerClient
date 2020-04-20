@@ -8,12 +8,10 @@
 //#include <Arduino_LSM6DS3.h>
 #include "Arduino_LSM6DS3.h"
 
-#include "Wifi/Wifi_Settings.h";
+#include "Wifi_Settings.h";
 int timeVector = 0;
 int imuSampleRate; 
 
-//const char *ssid     = "H1S2";
-//const char *password = "pw1234pw1234";
 char ssid[]     = SECRET_SSID;        // your network SSID (name)
 char password[] = SECRET_PASS; 
 
@@ -22,7 +20,6 @@ IPAddress server(IPAddr[0],IPAddr[1],IPAddr[2],IPAddr[3]);  // numeric IP for Go
 
 
 int status = WL_IDLE_STATUS;
-//IPAddress server(192, 168, 43, 30); // Google laptop
 
 // Initialize the client library
 WiFiClient client;
@@ -55,8 +52,8 @@ const unsigned char UBLOX_INIT[] PROGMEM = {
   // 0xB5,0x62,0x06,0x01,0x08,0x00,0xF0,0x04,0x00,0x00,0x00,0x00,0x00,0x01,0x04,0x40, // GxRMC off
   0xB5, 0x62, 0x06, 0x01, 0x08, 0x00, 0xF0, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x05, 0x47, // GxVTG off
   // Rate (pick one)
-    //0xB5,0x62,0x06,0x08,0x06,0x00,0x64,0x00,0x01,0x00,0x01,0x00,0x7A,0x12, //(10Hz)
-  0xB5, 0x62, 0x06, 0x08, 0x06, 0x00, 0xC8, 0x00, 0x01, 0x00, 0x01, 0x00, 0xDE, 0x6A, //(5Hz)
+    0xB5,0x62,0x06,0x08,0x06,0x00,0x64,0x00,0x01,0x00,0x01,0x00,0x7A,0x12, //(10Hz)
+  //0xB5, 0x62, 0x06, 0x08, 0x06, 0x00, 0xC8, 0x00, 0x01, 0x00, 0x01, 0x00, 0xDE, 0x6A, //(5Hz)
   //0xB5,0x62,0x06,0x08,0x06,0x00,0xE8,0x03,0x01,0x00,0x01,0x00,0x01,0x39 //(1Hz)
   0xb5, 0x62, 0x06, 0x00, 0x14, 0x00, 0x01, 0x00, 0x00, 0x00, 0xd0, 0x08, 0x00, 0x00, 0x00, 0xc2, 0x01, 0x00, 0x07, 0x00, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0xc4, 0x96, 0xb5, 0x62, 0x06, 0x00, 0x01, 0x00, 0x01, 0x08, 0x22 //baudrate 115200
 };
@@ -113,7 +110,8 @@ void setup() {
   digitalWrite(LED_BUILTIN, LOW);
   
 
-  Serial.begin(9600);
+  //Serial.begin(9600);
+  Serial.begin(115200);
   gpsSerial.begin(9600);
   while (!gpsSerial);
 
@@ -124,13 +122,14 @@ void setup() {
   
   Serial.print("Waiting for GPS Fix");
 
-  //while  (!(gps.location.isValid() && gps.location.age() < 2000)) {
-    //Serial.println(".");
-    //Serial.println(gps.location.age());
-    //Serial.println(gps.location.isValid());
-    //Serial.println(gps.location.lat());
+  while  (!(gps.location.isValid() && gps.location.age() < 2000)) {
+    //delay(100);
+    Serial.println("NO GPS Fix...");
+    Serial.println(gps.location.age());
+    Serial.println(gps.location.isValid());
+    Serial.println(gps.location.lat());
     //gpsInit();
-  //}
+  }
   Serial.println("GPS Fix aquired, changing freq");
   gpsInit();
   wifiConnect();
@@ -205,8 +204,10 @@ void loop() {
       Serial.println("ACK received, server connected");
       
 
-    } else if (c == 'G') {
-      
+    } else if ((c == 'G') && (dataReady)) {
+      Serial.print(dataReady);
+      Serial.print(" Sending T[0]= ");
+      Serial.println(data[0].tv);
       char *bytes = (char *) data;
       client.write(bytes, sizeof(data));
       client.flush();
